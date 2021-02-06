@@ -1,0 +1,27 @@
+{
+	"name": "twelican-bot",
+	"version": "1.0.0",
+	"description": "\"# twelican-bot\"",
+	"main": "index.js",
+	"scripts": {
+		"start": "node twelican-bot.js",
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/arejaycola/twelican-bot.git"
+	},
+	"author": "",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/arejaycola/twelican-bot/issues"
+	},
+	"homepage": "https://github.com/arejaycola/twelican-bot#readme",
+	"dependencies": {
+		"dotenv": "^8.2.0",
+		"mongo": "^0.1.0",
+		"mongoose": "^5.10.11",
+		"needle": "^2.6.0",
+		"twitter": "^1.7.1"
+	}
+}
