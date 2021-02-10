@@ -74,8 +74,7 @@ const updateNextUserStats = async (person) => {
 		try {
 			console.log(`Querying ${user.name}`);
 
-			const twitterUser = await TwitterUser.findOneAndUpdate({ name: user.name }, { ...user, last_updated: new Date() }, { upsert: true });
-			await twitterUser.save();
+			await TwitterUser.findOneAndUpdate({ name: user.name }, { ...user, last_updated: new Date() }, { upsert: true });
 		} catch (e) {
 			console.log(`Error fetching ${user.name}...`);
 		}
