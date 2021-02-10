@@ -12,20 +12,41 @@ const client = new Twitter({
 	access_token_secret: process.env.ACCESS_TOKEN_SECRET,
 });
 
-let people = fs.readFileSync('popular-user.txt', 'utf-8');
-people = people.split('\r\n');
-
+/* Instead of getting this from a document, get it from the database so we constantly grow the number of users that the bot is querying */
+// let people = fs.readFileSync('popular-user.txt', 'utf-8');
+// people = people.split('\r\n');
 
 let row = 0;
 
-const timer = setInterval( () => {
-	updateNextUserStats();
-}, 5000);
 const TwitterUserSchema = new Mongoose.Schema({}, { strict: false });
 const TwitterUser = Mongoose.model('twitter-user', TwitterUserSchema);
 
 const StatusSchema = new Mongoose.Schema({}, { strict: false });
 const Status = Mongoose.model('status', StatusSchema);
+
+// const cursor = TwitterUser.find({}, '_id id_str name screen_name').cursor();
+
+// const test = async () => {
+// 	for (let person = await cursor.next(); person != null; person = await cursor.next()) {
+// 		console.log(person);
+// 	}
+// 	// const people = await TwitterUser.find({}, '_id, id_str, name, screen_name');
+
+// 	// console.log(people[2]);
+// };
+// test();
+
+let cursor;
+const timer = setInterval(async () => {
+	if (cursor) {
+		const person = await cursor.next();
+		await updateNextUserStats(person.get('name'));
+	} else {
+		console.log('Acquiring cursor...');
+		cursor = await TwitterUser.find({}, '_id id_str name screen_name').cursor();
+	}
+	// }
+}, 5000);
 
 /* Returns a list of 20 possible matches to query */
 const getUserInfoFromTwitter = async (person) => {
@@ -44,24 +65,21 @@ const getUserInfoFromTwitter = async (person) => {
 	}
 };
 
-const updateNextUserStats = async () => {
-	/* Get the person from the document */
-	const person = people[row];
-
+const updateNextUserStats = async (person) => {
 	/* Query the search.json api for User information*/
 	const response = await getUserInfoFromTwitter(person);
 
 	/* Loop through responses and update or insert if it is a name we haven't seen before. */
 	response.map(async (user) => {
-		const twitterUser = await TwitterUser.findOneAndUpdate({ name: user.name }, { ...user, last_updated: new Date() }, { upsert: true });
-		await twitterUser.save();
+		try {
+			console.log(`Querying ${user.name}`);
+
+			const twitterUser = await TwitterUser.findOneAndUpdate({ name: user.name }, { ...user, last_updated: new Date() }, { upsert: true });
+			await twitterUser.save();
+		} catch (e) {
+			console.log(`Error fetching ${user.name}...`);
+		}
 	});
-
-	if (row === 100) {
-		clearInterval(timer);
-	}
-
-	row = (row + 1) % 100;
 };
 
 const getPage = async (url, params, options, nextToken) => {
