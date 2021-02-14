@@ -53,7 +53,7 @@ const getUserInfoFromTwitter = async (person) => {
 	try {
 		const response = await client.get(`https://api.twitter.com/1.1/users/search.json`, {
 			q: `${person}`,
-			count: 20,
+			count: 5,
 			page: 1,
 			include_entities: false,
 		});
