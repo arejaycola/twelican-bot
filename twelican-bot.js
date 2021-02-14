@@ -23,7 +23,6 @@ const TwitterUser = Mongoose.model('twitter-user', TwitterUserSchema);
 
 const StatusSchema = new Mongoose.Schema({}, { strict: false });
 const Status = Mongoose.model('status', StatusSchema);
-
 // const cursor = TwitterUser.find({}, '_id id_str name screen_name').cursor();
 
 // const test = async () => {
@@ -37,13 +36,23 @@ const Status = Mongoose.model('status', StatusSchema);
 // test();
 
 let cursor;
+let currentCount = 0;
+let total = 0;
 const timer = setInterval(async () => {
-	if (cursor) {
-		const person = await cursor.next();
-		await updateNextUserStats(person.get('name'));
-	} else {
-		console.log('Acquiring cursor...');
-		cursor = await TwitterUser.find({}, '_id id_str name screen_name').cursor();
+	try {
+		total = await TwitterUser.estimatedDocumentCount();
+
+		/* If the cursor exists get the next person, else get a new cursor */
+		if (cursor) {
+			const person = await cursor.next();
+			await updateNextUserStats(person.get('name'));
+		} else {
+			console.log('Acquiring cursor...');
+			currentCount = 0;
+			cursor = await TwitterUser.find({}, '_id id_str name screen_name', { timeout: false }).cursor();
+		}
+	} catch (e) {
+		console.log(`Cursor error... ${e}`);
 	}
 	// }
 }, 5000);
@@ -72,7 +81,8 @@ const updateNextUserStats = async (person) => {
 	/* Loop through responses and update or insert if it is a name we haven't seen before. */
 	response.map(async (user) => {
 		try {
-			console.log(`Querying ${user.name}`);
+			currentCount++;
+			console.log(`Querying ${user.name}...  ${currentCount} of ${total} (${((currentCount / total) * 100).toFixed(2)}%) complete.`);
 
 			await TwitterUser.findOneAndUpdate({ name: user.name }, { ...user, last_updated: new Date() }, { upsert: true });
 		} catch (e) {
