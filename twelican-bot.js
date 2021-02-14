@@ -49,7 +49,7 @@ const timer = setInterval(async () => {
 		} else {
 			console.log('Acquiring cursor...');
 			currentCount = 0;
-			cursor = await TwitterUser.find({}, '_id id_str name screen_name', { timeout: false }).cursor();
+			cursor = await TwitterUser.find({}, '_id id_str name screen_name', { timeout: false }).cursor().addCursorFlag('noCursorTimeout', true);
 		}
 	} catch (e) {
 		console.log(`Cursor error... ${e}`);
