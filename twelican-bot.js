@@ -35,18 +35,17 @@ const Status = Mongoose.model('status', StatusSchema);
 // };
 // test();
 
-let cursor;
 let currentCount = 0;
 let total = 0;
 let person = '';
+let cursor;
 const timer = setInterval(async () => {
 	try {
 		total = await TwitterUser.estimatedDocumentCount();
 		person = cursor && (await cursor.next());
+
 		/* If the cursor exists get the next person, else get a new cursor */
 		if (person) {
-			// const person = await cursor.next();
-
 			await updateNextUserStats(person.get('name'));
 		} else {
 			console.log('Acquiring cursor...');
@@ -54,9 +53,10 @@ const timer = setInterval(async () => {
 			cursor = await TwitterUser.find({}, '_id id_str name screen_name').cursor();
 		}
 	} catch (e) {
-		console.log(`Cursor error... ${e}`);
+		console.log(`Cursor error... ${e.stack}`);
+		cursor.next();
 	}
-}, 5000);
+}, 1000);
 
 /* Returns a list of 20 possible matches to query */
 const getUserInfoFromTwitter = async (person) => {
