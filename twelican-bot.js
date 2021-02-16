@@ -39,6 +39,10 @@ let currentCount = 0;
 let total = 0;
 let person = '';
 let cursor;
+
+// MongoDB Cursor Not Found, my processing fine but after some time it gives me an error. { MongoError: Cursor not found, cursor id  This normally happens because your cursor timeouts if it is idle for too long.
+// Check out noCursorTimeout. Just make sure you close the cursor when you are finished.
+/* maybe change this to a for loop with a sleep function at the end to slow things down */
 const timer = setInterval(async () => {
 	try {
 		total = await TwitterUser.estimatedDocumentCount();
@@ -56,7 +60,7 @@ const timer = setInterval(async () => {
 		console.log(`Cursor error... ${e.stack}`);
 		cursor.next();
 	}
-}, 1000);
+}, 500);
 
 /* Returns a list of 20 possible matches to query */
 const getUserInfoFromTwitter = async (person) => {
