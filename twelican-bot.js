@@ -58,9 +58,8 @@ const timer = setInterval(async () => {
 		}
 	} catch (e) {
 		console.log(`Cursor error... ${e.stack}`);
-		cursor.next();
 	}
-}, 4000);//3000 is the min to not exceed the rate limit
+}, 4000); //3000 is the min to not exceed the rate limit
 
 /* Returns a list of 20 possible matches to query */
 const getUserInfoFromTwitter = async (person) => {
@@ -68,7 +67,6 @@ const getUserInfoFromTwitter = async (person) => {
 		const response = await client.get(`https://api.twitter.com/1.1/users/search.json`, {
 			q: `${person}`,
 			count: 5,
-			page: 1,
 			include_entities: false,
 		});
 
@@ -81,20 +79,22 @@ const getUserInfoFromTwitter = async (person) => {
 };
 
 const updateNextUserStats = async (person) => {
-	/* Query the search.json api for User information*/
-	const response = await getUserInfoFromTwitter(person);
-
-	/* Loop through responses and update or insert if it is a name we haven't seen before. */
-	response.map(async (user) => {
+	if (person) {
 		try {
-			currentCount++;
-			console.log(`Querying ${user.name}...  ${currentCount} of ${total} (${((currentCount / total) * 100).toFixed(2)}%) complete.`);
+			/* Query the search.json api for User information*/
+			const response = await getUserInfoFromTwitter(person);
 
-			await TwitterUser.findOneAndUpdate({ name: user.name }, { ...user, last_updated: new Date() }, { upsert: true });
+			/* Loop through responses and update or insert if it is a name we haven't seen before. */
+			response.map(async (user) => {
+				currentCount++;
+				console.log(`Querying ${user.name}...  ${currentCount} of ${total} (${((currentCount / total) * 100).toFixed(2)}%) complete.`);
+
+				await TwitterUser.findOneAndUpdate({ name: user.name }, { ...user, last_updated: new Date() }, { upsert: true });
+			});
 		} catch (e) {
-			console.log(`Error fetching ${user.name}...`);
+			console.log(`Error fetching user...`);
 		}
-	});
+	}
 };
 
 const getPage = async (url, params, options, nextToken) => {
