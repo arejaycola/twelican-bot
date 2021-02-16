@@ -60,7 +60,7 @@ const timer = setInterval(async () => {
 		console.log(`Cursor error... ${e.stack}`);
 		cursor.next();
 	}
-}, 500);
+}, 4000);//3000 is the min to not exceed the rate limit
 
 /* Returns a list of 20 possible matches to query */
 const getUserInfoFromTwitter = async (person) => {
