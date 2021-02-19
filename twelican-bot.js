@@ -50,7 +50,6 @@ const timer = setInterval(async () => {
 		person = cursor && (await cursor.next());
 		/* If the cursor exists get the next person, else get a new cursor */
 		if (person) {
-			console.log(person.get('name'));
 			await updateNextUserStats(person);
 		} else {
 			console.log('Acquiring cursor...');
