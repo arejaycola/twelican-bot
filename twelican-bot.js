@@ -3,6 +3,7 @@ const Twitter = require('twitter');
 const fs = require('fs');
 const Mongoose = require('./mongoose-config').mongoose;
 const needle = require('needle');
+
 // const { Schema } = require('mongoose');
 
 const client = new Twitter({
@@ -13,8 +14,8 @@ const client = new Twitter({
 });
 
 /* Instead of getting this from a document, get it from the database so we constantly grow the number of users that the bot is querying */
-// let people = fs.readFileSync('popular-user.txt', 'utf-8');
-// people = people.split('\r\n');
+let people = fs.readFileSync('popular-user.txt', 'utf-8');
+people = people.split('\r\n');
 
 let row = 0;
 
@@ -47,11 +48,10 @@ const timer = setInterval(async () => {
 	try {
 		total = await TwitterUser.estimatedDocumentCount();
 		person = cursor && (await cursor.next());
-
 		/* If the cursor exists get the next person, else get a new cursor */
 		if (person) {
 			console.log(person.get('name'));
-			// await updateNextUserStats(person);
+			await updateNextUserStats(person);
 		} else {
 			console.log('Acquiring cursor...');
 			currentCount = 0;
@@ -97,6 +97,17 @@ const updateNextUserStats = async (person) => {
 		}
 	}
 };
+
+// const getPeople = async () => {
+// 	for (let i = 0; i < people.length; i++) {
+// 		const person = people[i];
+// 		await updateNextUserStats(person);
+
+// 		console.log(person);
+// 	}
+// };
+
+// getPeople();
 
 const getPage = async (url, params, options, nextToken) => {
 	if (nextToken) {
