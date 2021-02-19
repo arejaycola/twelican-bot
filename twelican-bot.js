@@ -24,17 +24,6 @@ const TwitterUser = Mongoose.model('twitter-user', TwitterUserSchema);
 
 const StatusSchema = new Mongoose.Schema({}, { strict: false });
 const Status = Mongoose.model('status', StatusSchema);
-// const cursor = TwitterUser.find({}, '_id id_str name screen_name').cursor();
-
-// const test = async () => {
-// 	for (let person = await cursor.next(); person != null; person = await cursor.next()) {
-// 		console.log(person);
-// 	}
-// 	// const people = await TwitterUser.find({}, '_id, id_str, name, screen_name');
-
-// 	// console.log(people[2]);
-// };
-// test();
 
 let currentCount = 0;
 let total = 0;
@@ -66,7 +55,7 @@ const getUserInfoFromTwitter = async (person) => {
 	try {
 		const response = await client.get(`https://api.twitter.com/1.1/users/search.json`, {
 			q: `${person.get('name')}`,
-			count: 1,
+			count: 2,
 			include_entities: false,
 		});
 
