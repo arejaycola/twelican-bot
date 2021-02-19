@@ -50,8 +50,7 @@ const timer = setInterval(async () => {
 
 		/* If the cursor exists get the next person, else get a new cursor */
 		if (person) {
-			console.log(person.get('name'));
-			// await updateNextUserStats(person.get('name'));
+			await updateNextUserStats(person);
 		} else {
 			console.log('Acquiring cursor...');
 			currentCount = 0;
@@ -60,13 +59,13 @@ const timer = setInterval(async () => {
 	} catch (e) {
 		console.log(`Cursor error... ${e.stack}`);
 	}
-}, 100); //3000 is the min to not exceed the rate limit
+}, 4000); //3000 is the min to not exceed the rate limit
 
 /* Returns a list of 20 possible matches to query */
 const getUserInfoFromTwitter = async (person) => {
 	try {
 		const response = await client.get(`https://api.twitter.com/1.1/users/search.json`, {
-			q: `${person}`,
+			q: `${person.get('name')}`,
 			count: 1,
 			include_entities: false,
 		});
@@ -90,7 +89,7 @@ const updateNextUserStats = async (person) => {
 				currentCount++;
 				console.log(`Querying ${user.name}...  ${currentCount} of ${total} (${((currentCount / total) * 100).toFixed(2)}%) complete.`);
 
-				await TwitterUser.findOneAndUpdate({ name: user.name }, { ...user, last_updated: new Date() }, { upsert: true });
+				await TwitterUser.findOneAndUpdate({ id_str: user.id_str }, { ...user, last_updated: new Date() }, { upsert: true });
 			});
 		} catch (e) {
 			console.log(`Error fetching user...`);
