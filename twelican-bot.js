@@ -50,7 +50,8 @@ const timer = setInterval(async () => {
 
 		/* If the cursor exists get the next person, else get a new cursor */
 		if (person) {
-			await updateNextUserStats(person.get('name'));
+			console.log(person.get('name'));
+			// await updateNextUserStats(person.get('name'));
 		} else {
 			console.log('Acquiring cursor...');
 			currentCount = 0;
@@ -59,14 +60,14 @@ const timer = setInterval(async () => {
 	} catch (e) {
 		console.log(`Cursor error... ${e.stack}`);
 	}
-}, 4000); //3000 is the min to not exceed the rate limit
+}, 100); //3000 is the min to not exceed the rate limit
 
 /* Returns a list of 20 possible matches to query */
 const getUserInfoFromTwitter = async (person) => {
 	try {
 		const response = await client.get(`https://api.twitter.com/1.1/users/search.json`, {
 			q: `${person}`,
-			count: 5,
+			count: 1,
 			include_entities: false,
 		});
 
