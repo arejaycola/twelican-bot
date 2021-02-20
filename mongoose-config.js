@@ -10,6 +10,7 @@ mongoose.connect(process.env.DB_CONNECTION_URL, {
 	socketTimeoutMS: 60000,
 });
 
+
 mongoose.connection.on('open', console.error.bind(console, 'Connect to MongoDB server...'));
 mongoose.connection.on('error', console.error.bind(console, 'MongoDB connection error'));
 
