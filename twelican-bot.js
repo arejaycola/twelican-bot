@@ -31,7 +31,7 @@ let person = '';
 let cursor;
 
 /* Create an array to try and avoid duplicate requests */
-const seenPeople = [];
+let seenPeople = [];
 
 const timer = setInterval(async () => {
 	try {
@@ -77,12 +77,14 @@ const updateNextUserStats = async (person) => {
 
 			/* Loop through responses and update or insert if it is a name we haven't seen before. */
 			response.map(async (user) => {
-				if (seenPeople.indexOf(user.name) !== -1) {
+				if (seenPeople.indexOf(user.name) === -1) {
 					currentCount++;
 					console.log(`Querying ${user.name}...  ${currentCount} of ${total} (${((currentCount / total) * 100).toFixed(2)}%) complete.`);
 
 					await TwitterUser.findOneAndUpdate({ id_str: user.id_str }, { ...user, last_updated: new Date() }, { upsert: true });
 					seenPeople.push(user.name);
+				} else {
+					console.log(`Skipping ${user.name}...`);
 				}
 			});
 		} catch (e) {
