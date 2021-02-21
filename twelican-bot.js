@@ -48,6 +48,7 @@ const timer = setInterval(async () => {
 			cursor = await TwitterUser.find({}, '_id id_str name screen_name').cursor();
 		}
 	} catch (e) {
+		console.log('Person -----' + person);
 		console.log(`Cursor error... ${e.stack}`);
 	}
 }, 4000); //3000 is the min to not exceed the rate limit
