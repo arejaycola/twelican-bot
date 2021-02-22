@@ -65,7 +65,7 @@ const getUserInfoFromTwitter = async (person) => {
 		/* Filter out any unverified results */
 		return response.filter((user) => user.verified);
 	} catch (e) {
-		console.log(`Error performing user search for ${person}. `);
+		console.log(`Error performing user search for ${person.name} at ${currentCount}. `);
 		console.log(e);
 	}
 };
