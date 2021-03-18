@@ -12,18 +12,26 @@ const client = new Twitter({
 	access_token_key: process.env.ACCESS_TOKEN_KEY,
 	access_token_secret: process.env.ACCESS_TOKEN_SECRET,
 });
-
-/* Instead of getting this from a document, get it from the database so we constantly grow the number of users that the bot is querying */
-let people = fs.readFileSync('popular-user.txt', 'utf-8');
-people = people.split('\r\n');
-
+let people;
 let row = 0;
+let newFlag = false;
 
-const TwitterUserSchema = new Mongoose.Schema({}, { strict: false });
-const TwitterUser = Mongoose.model('twitter-user', TwitterUserSchema);
+let TwitterUserSchema = new Mongoose.Schema({}, { strict: false });
+let TwitterUser = Mongoose.model('twitter-users', TwitterUserSchema);
 
-const StatusSchema = new Mongoose.Schema({}, { strict: false });
-const Status = Mongoose.model('status', StatusSchema);
+let StatusSchema = new Mongoose.Schema({}, { strict: false });
+let Status = Mongoose.model('status', StatusSchema);
+
+if (process.argv[2] == '-n') {
+	console.log('Creating new database');
+
+	/* Instead of getting this from a document, get it from the database so we constantly grow the number of users that the bot is querying */
+	newFlag = true;
+	people = fs.readFileSync('popular-user.txt', 'utf-8');
+
+	people = people.split('\r\n');
+} else {
+}
 
 let currentCount = 0;
 let total = 0;
@@ -35,8 +43,16 @@ let seenPeople = [];
 
 const timer = setInterval(async () => {
 	try {
-		total = await TwitterUser.estimatedDocumentCount();
-		person = cursor && (await cursor.next());
+		let person;
+
+		if (newFlag) {
+			total = people.length;
+			person = people[row];
+		} else {
+			total = await TwitterUser.estimatedDocumentCount();
+			person = cursor && (await cursor.next());
+		}
+
 		/* If the cursor exists get the next person, else get a new cursor */
 		if (person) {
 			await updateNextUserStats(person);
@@ -45,7 +61,13 @@ const timer = setInterval(async () => {
 			console.log('Acquiring cursor...');
 			currentCount = 0;
 			seenPeople = [];
-			cursor = await TwitterUser.find({}, '_id id_str name screen_name').cursor();
+			if (newFlag) {
+				row = 0;
+			} else {
+				cursor = await TwitterUser.find({}, '_id id_str name screen_name', { timeout: false })
+					.cursor()
+					.addCursorFlag('noCursorTimeout', true);
+			}
 		}
 	} catch (e) {
 		console.log('Person -----' + person);
@@ -57,7 +79,7 @@ const timer = setInterval(async () => {
 const getUserInfoFromTwitter = async (person) => {
 	try {
 		const response = await client.get(`https://api.twitter.com/1.1/users/search.json`, {
-			q: `${person.get('name')}`,
+			q: `${person}`,
 			count: 5,
 			include_entities: false,
 		});
@@ -73,10 +95,16 @@ const getUserInfoFromTwitter = async (person) => {
 const updateNextUserStats = async (person) => {
 	if (person) {
 		try {
+			let response;
+			if (newFlag) {
+				response = await getUserInfoFromTwitter(person);
+			} else {
+				response = await getUserInfoFromTwitter(person.get('name'));
+			}
 			/* Query the search.json api for User information*/
-			const response = await getUserInfoFromTwitter(person);
 
 			/* Loop through responses and update or insert if it is a name we haven't seen before. */
+
 			response.map(async (user) => {
 				if (seenPeople.indexOf(user.name) === -1) {
 					currentCount++;
@@ -88,6 +116,10 @@ const updateNextUserStats = async (person) => {
 					console.log(`Skipping ${user.name}...`);
 				}
 			});
+
+			if (newFlag) {
+				row++;
+			}
 		} catch (e) {
 			console.log(`Error fetching user...`);
 		}
