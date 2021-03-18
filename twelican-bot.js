@@ -64,7 +64,7 @@ const timer = setInterval(async () => {
 			if (newFlag) {
 				row = 0;
 			} else {
-				cursor = await TwitterUser.find({}, '_id id_str name screen_name', { timeout: false })
+				cursor = await TwitterUser.find({}, '_id id_str name screen_name')
 					.cursor()
 					.addCursorFlag('noCursorTimeout', true);
 			}
