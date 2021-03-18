@@ -19,7 +19,7 @@
 	"homepage": "https://github.com/arejaycola/twelican-bot#readme",
 	"dependencies": {
 		"dotenv": "^8.2.0",
-		"mongoose": "^5.11.16",
+		"mongoose": "^5.12.0",
 		"needle": "^2.6.0",
 		"twitter": "^1.7.1"
 	}
