@@ -68,6 +68,10 @@ const timer = setInterval(async () => {
 			}
 		}
 	} catch (e) {
+		if (person) {
+		} else {
+			person = null;
+		}
 		console.log('Person -----' + person);
 		console.log('Cursor -----' + cursor);
 		console.log(`Cursor error... ${e.stack}`);
