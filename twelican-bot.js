@@ -68,12 +68,7 @@ const timer = setInterval(async () => {
 			}
 		}
 	} catch (e) {
-		if (person) {
-		} else {
-			person = null;
-		}
 		console.log('Person -----' + person);
-		console.log('Cursor -----' + cursor);
 		console.log(`Cursor error... ${e.stack}`);
 	}
 }, 4000); //3000 is the min to not exceed the rate limit
