@@ -69,6 +69,7 @@ const timer = setInterval(async () => {
 		}
 	} catch (e) {
 		console.log('Person -----' + person);
+		console.log('Cursor -----' + cursor);
 		console.log(`Cursor error... ${e.stack}`);
 	}
 }, 4000); //3000 is the min to not exceed the rate limit
@@ -78,7 +79,7 @@ const getUserInfoFromTwitter = async (person) => {
 	try {
 		const response = await client.get(`https://api.twitter.com/1.1/users/search.json`, {
 			q: `${person}`,
-			count: 5,
+			count: 1,
 			include_entities: false,
 		});
 
