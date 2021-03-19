@@ -65,14 +65,17 @@ const timer = setInterval(async () => {
 				row = 0;
 			} else {
 				cursor = await TwitterUser.find({}, '_id id_str name screen_name').cursor();
+				// cursor.skip(1);
+				// console.log(Mongoose.connections);
 			}
 		}
 	} catch (e) {
 		console.log('Person -----' + person);
 		console.log(`Cursor error... ${e.stack}`);
 		console.log('Attempting to get skip cursor...');
-
-		cursor.skip(1);
+		console.log(`Skipping ${currentCount}. `);
+		cursor = await TwitterUser.find({}, '_id id_str name screen_name').skip(currentCount).cursor();
+		// cursor.skip(1);
 		// seenPeople = [];
 		// cursor = await TwitterUser.find({}, '_id id_str name screen_name').cursor();
 	}
