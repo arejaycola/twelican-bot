@@ -4,8 +4,6 @@ const fs = require('fs');
 const Mongoose = require('./mongoose-config').mongoose;
 const needle = require('needle');
 
-// const { Schema } = require('mongoose');
-
 const client = new Twitter({
 	consumer_key: process.env.CONSUMER_KEY,
 	consumer_secret: process.env.CONSUMER_SECRET,
@@ -38,85 +36,81 @@ let total = 0;
 let person = '';
 let cursor;
 
+let tweetsCursor;
+
 /* Create an array to try and avoid duplicate requests */
 let seenPeople = [];
 
-const timer = setInterval(async () => {
-	try {
-		let person;
+// const statsTimer = setInterval(async () => {
+// 	try {
+// 		let person;
 
-		if (newFlag) {
-			total = people.length;
-			person = people[row];
-		} else {
-			total = await TwitterUser.estimatedDocumentCount();
-			person = cursor && (await cursor.next());
-		}
+// 		if (newFlag) {
+// 			total = people.length;
+// 			person = people[row];
+// 		} else {
+// 			total = await TwitterUser.estimatedDocumentCount();
+// 			person = cursor && (await cursor.next());
+// 		}
 
-		/* If the cursor exists get the next person, else get a new cursor */
-		if (person) {
-			await updateNextUserStats(person);
-		} else {
-			/* Start the list over */
-			console.log('Acquiring cursor...');
-			currentCount = 0;
-			seenPeople = [];
-			if (newFlag) {
-				row = 0;
-			} else {
-				cursor = await TwitterUser.find({}, '_id id_str name screen_name').cursor();
-				// cursor.skip(1);
-				// console.log(Mongoose.connections);
-			}
-		}
-	} catch (e) {
-		console.log('Person -----' + person);
-		console.log(`Cursor error... ${e.stack}`);
-		console.log('Attempting to get skip cursor...');
-		console.log(`Skipping ${currentCount}. `);
-		cursor = await TwitterUser.find({}, '_id id_str name screen_name').skip(currentCount).cursor();
-		// cursor.skip(1);
-		// seenPeople = [];
-		// cursor = await TwitterUser.find({}, '_id id_str name screen_name').cursor();
-	}
-}, 4000); //3000 is the min to not exceed the rate limit
+// 		/* If the cursor exists get the next person, else get a new cursor */
+// 		if (person) {
+// 			await updateNextUserStats(person);
+// 		} else {
+// 			/* Start the list over */
+// 			console.log('Acquiring cursor...');
+// 			currentCount = 0;
+// 			seenPeople = [];
+// 			if (newFlag) {
+// 				row = 0;
+// 			} else {
+// 				cursor = await TwitterUser.find({}, '_id id_str name screen_name').cursor();
+// 			}
+// 		}
+// 	} catch (e) {
+// 		console.log('Person -----' + person);
+// 		console.log(`Cursor error... ${e.stack}`);
+// 		console.log('Attempting to get skip cursor...');
+// 		console.log(`Skipping ${currentCount}. `);
+// 		cursor = await TwitterUser.find({}, '_id id_str name screen_name').skip(currentCount).cursor();
+// 	}
+// }, 4000); //3000 is the min to not exceed the rate limit
 
-/* Returns a list of 20 possible matches to query */
-const getUserInfoFromTwitter = async (person) => {
-	try {
-		const response = await client.get(`https://api.twitter.com/1.1/users/search.json`, {
-			q: `${person}`,
-			count: 1,
-			include_entities: false,
-		});
+const updateUserTweets = async () => {
+	/* Start the list over */
+	console.log('Acquiring tweets cursor...');
+	tweetsCursor = await TwitterUser.find({}, 'id_str').cursor();
 
-		/* Filter out any unverified results */
-		return response.filter((user) => user.verified);
-	} catch (e) {
-		console.log(`Error performing user search for ${person.name} at ${currentCount}. `);
-		console.log(e);
+	while ((userId = await tweetsCursor.next())) {
+		await getUserTweets(userId.get('id_str'));
+		// break;
 	}
 };
+updateUserTweets();
 
 const updateNextUserStats = async (person) => {
 	if (person) {
 		try {
 			let response;
+
+			/* Query Twitter API for user stats. */
 			if (newFlag) {
-				response = await getUserInfoFromTwitter(person);
+				response = await queryUserInfo(person);
 			} else {
-				response = await getUserInfoFromTwitter(person.get('name'));
+				response = await queryUserInfo(person.get('name'));
 			}
-			/* Query the search.json api for User information*/
 
 			/* Loop through responses and update or insert if it is a name we haven't seen before. */
-
 			response.map(async (user) => {
 				if (seenPeople.indexOf(user.name) === -1) {
 					currentCount++;
+
 					console.log(`Querying ${user.name}...  ${currentCount} of ${total} (${((currentCount / total) * 100).toFixed(2)}%) complete.`);
 
+					/* Update or add a new user to the database. */
 					await TwitterUser.findOneAndUpdate({ id_str: user.id_str }, { ...user, last_updated: new Date() }, { upsert: true });
+
+					/* Keep track of duplicate search results to make API calls more efficient */
 					seenPeople.push(user.name);
 				} else {
 					console.log(`Skipping ${user.name}...`);
@@ -132,25 +126,31 @@ const updateNextUserStats = async (person) => {
 	}
 };
 
-// const getPeople = async () => {
-// 	for (let i = 0; i < people.length; i++) {
-// 		const person = people[i];
-// 		await updateNextUserStats(person);
+/* Returns a list of n possible matches to query */
+const queryUserInfo = async (person, n) => {
+	try {
+		const response = await client.get(`https://api.twitter.com/1.1/users/search.json`, {
+			q: `${person}`,
+			count: n,
+			include_entities: false,
+		});
 
-// 		console.log(person);
-// 	}
-// };
-
-// getPeople();
+		/* Filter out any unverified results */
+		return response.filter((user) => user.verified);
+	} catch (e) {
+		console.log(`Error performing user search for ${person.name} at ${currentCount}. `);
+		console.log(e);
+	}
+};
 
 const getPage = async (url, params, options, nextToken) => {
 	if (nextToken) {
 		params.next_token = nextToken;
 	}
-
+// https://developer.twitter.com/en/docs/twitter-api/tweets/timelines/quick-start
 	try {
 		const resp = await needle('get', url, params, options);
-
+		console.log(JSON.stringify(resp.body, undefined, 2));
 		if (resp.statusCode != 200) {
 			console.log(`${resp.statusCode} ${resp.statusMessage}:\n${resp.body}`);
 			return;
@@ -161,9 +161,11 @@ const getPage = async (url, params, options, nextToken) => {
 	}
 };
 
-const getUserTweets = async (person) => {
-	// const url = `https://api.twitter.com/2/users/${person}/tweets`;
-	const url = `https://api.twitter.com/2/tweets?ids=${1260294888811347969}`;
+const getUserTweets = async (id) => {
+	const url = `https://api.twitter.com/2/users/${id}/tweets`;
+	// console.log(id);
+
+	// const url = `https://api.twitter.com/2/tweets?ids=`;
 
 	let userTweets = [];
 	let params = {
@@ -179,21 +181,27 @@ const getUserTweets = async (person) => {
 
 	let hasNextPage = true;
 	let nextToken = null;
-	console.log('Retrieving Tweets...');
-	while (hasNextPage) {
-		let resp = await getPage(url, params, options, nextToken);
-		if (resp && resp.meta && resp.meta.result_count && resp.meta.result_count > 0) {
-			if (resp.data) {
-				userTweets.push.apply(userTweets, resp.data);
+	// console.log(`Retrieving Tweets for ${id}`);
+	try {
+		while (hasNextPage) {
+			let resp = await getPage(url, params, options, nextToken);
+			
+			if (resp && resp.meta && resp.meta.result_count && resp.meta.result_count > 0) {
+				if (resp.data) {
+					userTweets.push.apply(userTweets, resp.data);
+				}
+				if (resp.meta.next_token) {
+					nextToken = resp.meta.next_token;
+				}
+			} else {
+				hasNextPage = false;
 			}
-			if (resp.meta.next_token) {
-				nextToken = resp.meta.next_token;
-			}
-		} else {
-			hasNextPage = false;
 		}
+	} catch (e) {
+		console.log(e);
 	}
-
+	
+	console.log(userTweets.length)
 	// console.log(JSON.stringify(userTweets, undefined, 2))
 	// console.log(`Got ${userTweets.length} Tweets from `);
 };
